@@ -1,0 +1,97 @@
+import numpy as np
+import gym
+import pandas as pd
+from PER.Algorithm import DQN as METHOD
+
+
+def main():
+    # 初始化参数，智能体环境
+    Reward = []
+    Episode = []
+    Step = []
+    Num_steps = []
+    Mean_Reward = []
+    Score = []
+    env = gym.make(ENV)
+    agent = METHOD(env)
+    best_eval_score = -np.inf
+
+    for episode in range(EPISODE):
+        # 初始化环境
+        state = env.reset()
+        total_reward = 0
+        Timestep = 0
+        for step in range(STEP):
+            # env.render()
+            action = agent.e_greedy_action(state)  # 调用epsilon_greedy算法选择动作
+            next_state, reward, done, _ = env.step(action)  # 执行当前动作获得所有转换数据
+            total_reward += reward
+
+            agent.perceive(state, action, reward, next_state, done)  # 调用perceive函数存储所有转换数据
+            # print('episode: ', episode, 'TIME_STEP: ', step, 'Reward:', total_reward,  "Iterations:", seed)
+            state = next_state  # 更新状态
+            print(f'Episode: {episode:<4}  '
+                  f'TIME_STEP: {step:<4}  '
+                  f'Return: {total_reward:<5.1f}')
+            if done:
+                break
+            Timestep += 1
+            Episode.append(episode)
+            Reward.append(total_reward)
+            Step.append(Timestep)
+            pd_data = pd.DataFrame({
+                'EPISODE': Episode,
+                'Timestep': Step,
+                'Reward': Reward,
+                'Algorithm': algorithm, })
+            pd_data.to_csv('E:/DESKTOP/TEAE/code/DQN/PER/data/train/' + ENV + '.csv')
+
+        if episode % params_interval == 0:
+            agent.update_target_params()
+
+
+
+        if episode % eval_interval == 0:
+            total_return = 0
+            for i in range(TEST):
+                state = env.reset()
+                episode_return = 0.0
+                done = False
+                episode_steps = 0
+                while not done:
+                    action = agent.action(state)  # 调用action函数,获得目标网络中Q值最大的动作
+                    next_state, reward, done, _ = env.step(action)
+                    episode_steps += 1
+                    if episode_steps + 1 >= STEP:
+                        done = True
+                    episode_return += reward
+                    state = next_state
+                total_return += episode_return
+            mean_return = total_return / TEST
+            if mean_return > best_eval_score:
+                best_eval_score = mean_return
+            print('-' * 60)
+            print(f'Num steps: {Timestep:<5}  '
+                  f'Reward: {mean_return:<5.1f}'
+                  f'Score: {best_eval_score:<5.1f}')
+            print('-' * 60)
+
+            Num_steps.append(Timestep)
+            Mean_Reward.append(mean_return)
+            Score.append(best_eval_score)
+            pd_data2 = pd.DataFrame({
+                'Num_steps': Num_steps,
+                'Reward': Mean_Reward,
+                'Score': Score, })
+            pd_data2.to_csv('E:/DESKTOP/TEAE/code/DQN/PER/data/test/' + ENV + '.csv')
+
+
+if __name__ == '__main__':
+    algorithm = "DQN_PER"
+    EPISODE = 400  # 迭代周期数
+    STEP = 5000  # 每个周期迭代时间步
+    params_interval = 1
+    eval_interval = 2
+    TEST = 4
+    ENV = "Qbert-ram-v0"
+    main()
